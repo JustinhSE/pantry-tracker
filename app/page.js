@@ -1,12 +1,28 @@
 "use client";
-import { Box, TextField, Typography, Stack, IconButton, Button } from "@mui/material";
-import { useState, useEffect } from "react";
+import { Stack, Box, Modal, Button, Typography, TextField, IconButton } from "@mui/material";
 import { firestore } from "./firebase";
-import { collection, getDocs, query, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 
-export default function SearchHistory() {
+export default function Home() {
   const [pantry, setPantry] = useState([]);
+  const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [newItem, setNewItem] = useState("");
+  const [quantity, setQuantity] = useState(1);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const handleAddItem = async () => {
+    if (newItem.trim()) {
+      await addDoc(collection(firestore, "pantry"), { name: newItem, quantity });
+      setNewItem("");
+      setQuantity(1);
+      handleClose();
+      updatePantry();
+    }
+  };
 
   const handleRemoveItem = async (id) => {
     const docRef = doc(firestore, "pantry", id);
@@ -33,7 +49,7 @@ export default function SearchHistory() {
   useEffect(() => {
     updatePantry();
   }, []);
-
+  
   const filteredPantry = pantry.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -46,6 +62,21 @@ export default function SearchHistory() {
     }
   };
 
+  const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'white',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+  };
+
   return (
     <Box
       width="100vw"
@@ -55,13 +86,48 @@ export default function SearchHistory() {
       justifyContent={"center"}
       alignItems={"center"}
     >
-      <TextField
-        label="Search Pantry"
-        variant="outlined"
-        value={searchTerm}
-        onChange={handleSearch}
-        sx={{ marginBottom: 2 }}
-      />
+      {pantry.length > 0 && (
+        <TextField
+          label="Search Pantry"
+          variant="outlined"
+          value={searchTerm}
+          onChange={handleSearch}
+          sx={{ marginBottom: 2 }}
+        />
+      )}
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Add New Item
+          </Typography>
+          <TextField
+            label="Item Name"
+            variant="outlined"
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+          />
+          {pantry.length > 0 && (
+            <TextField
+              label="Quantity"
+              type="number"
+              variant="outlined"
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+            />
+          )}
+          <Button variant="contained" onClick={handleAddItem}>
+            Add
+          </Button>
+        </Box>
+      </Modal>
+      <Button variant="contained" onClick={handleOpen} >
+        Add
+      </Button>
       <Box border={"1px solid #333"}>
         <Box
           width="800px"
@@ -71,7 +137,7 @@ export default function SearchHistory() {
           justifyContent={"center"}
           alignItems={"center"}
         >
-          <Typography variant={"h2"} color={"#333"} textAlign={"center"}>
+          <Typography variant={"h2"} color={"#333"} textAlign={"center"} sx={{ fontFamily: '"Brush Script MT", cursive' }}>
             Pantry Items
           </Typography>
         </Box>
@@ -86,8 +152,9 @@ export default function SearchHistory() {
               alignItems={"center"}
               bgcolor={"#f0f0f0"}
               px={2}
+              sx={{ fontFamily: '"Brush Script MT", cursive' }}
             >
-              <Typography variant={"h3"} color={"#333"} textAlign={"center"}>
+              <Typography variant={"h4"} color={"#333"} textAlign={"center"}>
                 {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
               </Typography>
               <Box display={"flex"} alignItems={"center"} gap={2}>
