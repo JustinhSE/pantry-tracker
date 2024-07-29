@@ -1,32 +1,23 @@
 "use client";
-import { Stack, Box, Modal, Button, Typography, TextField } from "@mui/material";
+import { Stack, Box, Modal, Button, Typography, TextField, IconButton } from "@mui/material";
 import { firestore } from "./firebase";
-import { collection, getDocs, query, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-
-// const item = [
-//   "tomato",
-//   "potato",
-//   "trail mix",
-//   "peppers",
-//   "corn",
-//   "soda",
-//   "water",
-//   "beans",
-// ];
 
 export default function Home() {
   const [pantry, setPantry] = useState([]);
   const [open, setOpen] = useState(false);
   const [newItem, setNewItem] = useState("");
+  const [quantity, setQuantity] = useState(1);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
   const handleAddItem = async () => {
     if (newItem.trim()) {
-      await addDoc(collection(firestore, "pantry"), { name: newItem });
+      await addDoc(collection(firestore, "pantry"), { name: newItem, quantity });
       setNewItem("");
+      setQuantity(1);
       handleClose();
       updatePantry();
     }
@@ -35,6 +26,12 @@ export default function Home() {
   const handleRemoveItem = async (id) => {
     const docRef = doc(firestore, "pantry", id);
     await deleteDoc(docRef);
+    updatePantry();
+  };
+
+  const handleUpdateQuantity = async (id, newQuantity) => {
+    const docRef = doc(firestore, "pantry", id);
+    await updateDoc(docRef, { quantity: newQuantity });
     updatePantry();
   };
 
@@ -92,6 +89,13 @@ export default function Home() {
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
           />
+          <TextField
+            label="Quantity"
+            type="number"
+            variant="outlined"
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
           <Button variant="contained" onClick={handleAddItem}>
             Add
           </Button>
@@ -128,6 +132,15 @@ export default function Home() {
               <Typography variant={"h3"} color={"#333"} textAlign={"center"}>
                 {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
               </Typography>
+              <Box display={"flex"} alignItems={"center"}>
+                <IconButton onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>
+                  -
+                </IconButton>
+                <Typography variant={"h5"}>{item.quantity}</Typography>
+                <IconButton onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
+                  +
+                </IconButton>
+              </Box>
               <Button variant="contained" color="secondary" onClick={() => handleRemoveItem(item.id)}>
                 Remove
               </Button>
